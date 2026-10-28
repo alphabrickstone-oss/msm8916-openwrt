@@ -107,3 +107,21 @@ CONFIG_PACKAGE_kmod-qrtr=y
 CONFIG_PACKAGE_kmod-qrtr-mhi=y
 CONFIG_PACKAGE_kmod-qrtr-tun=y
 # CONFIG_TARGET_ROOTFS_EXT4FS is not set
+# Wireless Core Ecosystem and WPA Security
+CONFIG_PACKAGE_wpad-basic-mbedtls=y
+CONFIG_PACKAGE_iwinfo=y
+
+# Physical Qualcomm WCN36xx Wi-Fi Driver and Firmware Layers
+CONFIG_PACKAGE_kmod-wcn36xx=y
+CONFIG_PACKAGE_wcn36xx-firmware=y
+
+# Web-Based SMS Manager Panel and Command Utilities
+CONFIG_PACKAGE_sms-tool=y
+CONFIG_PACKAGE_luci-app-sms-tool=y
+#  AD BLOCKER (Lightweight Router-Level AdBlock)
+# =====================================================================
+CONFIG_PACKAGE_luci-app-simple-adblock=y
+# 🔄 AUTOMATIC RECONNECT & REBOOT WATCHDOG (Internet Failure Fix)
+# =====================================================================
+CONFIG_PACKAGE_watchcat=y
+CONFIG_PACKAGE_luci-app-watchcat=y
