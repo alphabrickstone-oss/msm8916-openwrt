@@ -26,7 +26,8 @@ jobs:
     - name: Resolve latest stable OpenWrt 25.12.x tag
       id: resolve
       run: |
-        VERSION=$(git ls-remote --tags https://git.openwrt.org/openwrt/openwrt.git 'v25.12.*' \
+        VERSION=$(git ls-remote --tags https://openwrt.org 'v25.12.*' \
+
           | grep -oP 'v25\.12\.\d+$' | sort -V | tail -1)
         if [ -z "$VERSION" ]; then
           echo "ERROR: Could not resolve a stable OpenWrt 25.12.x version"
@@ -63,7 +64,7 @@ jobs:
     - name: Clone OpenWrt source code
       run: |
         echo "Using OpenWrt ${{ needs.resolve-version.outputs.openwrt_version }}"
-        git clone https://git.openwrt.org/openwrt/openwrt.git openwrt
+        git clone https://openwrt.org openwrt
         git -C openwrt checkout ${{ needs.resolve-version.outputs.openwrt_version }}
 
     - name: Load msm89xx target and packages
@@ -85,6 +86,19 @@ jobs:
         DEVICE="${{ matrix.device }}"
         DIFFCONFIG="diffconfig_${DEVICE}"
         [ -f "$DIFFCONFIG" ] && mv "$DIFFCONFIG" openwrt/.config
+
+    - name: Force Custom Package Injection
+      run: |
+        echo "CONFIG_PACKAGE_opkg=y" >> openwrt/.config
+        echo "CONFIG_PACKAGE_wpad-basic-mbedtls=y" >> openwrt/.config
+        echo "CONFIG_PACKAGE_kmod-wcn36xx=y" >> openwrt/.config
+        echo "CONFIG_PACKAGE_wcn36xx-firmware=y" >> openwrt/.config
+        echo "CONFIG_PACKAGE_luci-app-sms-manager=y" >> openwrt/.config
+        echo "CONFIG_PACKAGE_luci-app-simple-adblock=y" >> openwrt/.config
+        echo "CONFIG_PACKAGE_luci-app-wireguard=y" >> openwrt/.config
+        echo "CONFIG_PACKAGE_watchcat=y" >> openwrt/.config
+        echo "CONFIG_PACKAGE_luci-app-watchcat=y" >> openwrt/.config
+        echo "CONFIG_PACKAGE_alsa-utils=y" >> openwrt/.config
 
     - name: Download package
       id: package
