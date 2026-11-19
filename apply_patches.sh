@@ -90,3 +90,6 @@ if [ -f "msm89xx/base-files/etc/init.d/99-modem-selfheal" ]; then
     echo "Locking execution attributes for 99-modem-selfheal..."
     chmod +x msm89xx/base-files/etc/init.d/99-modem-selfheal 2>/dev/null
 fi
+chmod +x msm89xx/base-files/usr/bin/read-sms 2>/dev/null
+chmod +x msm89xx/base-files/usr/bin/delete-sms 2>/dev/null
+chmod +x msm89xx/base-files/usr/bin/send-sms 2>/dev/null
