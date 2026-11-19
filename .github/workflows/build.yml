@@ -113,7 +113,8 @@ jobs:
       id: organize
       if: env.UPLOAD_FIRMWARE == 'true' && !cancelled()
       run: |
-        cd openwrt/bin/targets/*/*
+        # Explicit target configuration map routing
+        cd openwrt/bin/targets/msm89xx/generic
         rm -rf packages
         echo "FIRMWARE=$PWD" >> $GITHUB_ENV
         echo "status=success" >> $GITHUB_OUTPUT
@@ -128,4 +129,3 @@ jobs:
           ${{ env.FIRMWARE }}/*-boot.img
           ${{ env.FIRMWARE }}/*-system.img
           ${{ env.FIRMWARE }}/*.manifest
-          ${{ env.FIRMWARE }}/*-flash.sh
