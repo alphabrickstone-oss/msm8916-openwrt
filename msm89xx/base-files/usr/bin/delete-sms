@@ -1,0 +1,27 @@
+#delete messages
+cat << 'EOF' > /usr/bin/delete-sms
+#!/bin/sh
+
+MODEM_INDEX=$(mmcli -L | grep -oE "Modem/[0-9]+" | head -n 1 | cut -d/ -f2)
+
+if [ -z "$MODEM_INDEX" ]; then
+    echo "Error: No modem detected by ModemManager."
+    exit 1
+fi
+
+SMS_PATHS=$(mmcli -m "$MODEM_INDEX" --messaging-list-sms | grep -o "SMS/[0-9]*")
+
+if [ -z "$SMS_PATHS" ]; then
+    echo "Inbox is already empty. Nothing to delete."
+    exit 0
+fi
+
+echo "--- Starting SMS Purge Loop ---"
+
+for path in $SMS_PATHS; do
+    id=$(echo "$path" | cut -d/ -f2)
+    mmcli -m "$MODEM_INDEX" --messaging-delete-sms="$id" && echo "Successfully Deleted SMS ID: $id"
+done
+
+echo "All SMS messages cleared."
+EOF
