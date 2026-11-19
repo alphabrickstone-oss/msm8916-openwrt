@@ -52,4 +52,4 @@ done
 echo "=========================================="
 EOF
 
-chmod +x /usr/bin/read-sms
+
