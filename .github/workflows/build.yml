@@ -19,18 +19,18 @@ env:
 
 jobs:
   resolve-version:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     outputs:
       openwrt_version: ${{ steps.resolve.outputs.version }}
     steps:
-    - name: Resolve latest stable OpenWrt 25.12.x tag
+    - name: Resolve stable OpenWrt tag
       id: resolve
       run: |
         echo "version=v25.12.6" >> $GITHUB_OUTPUT
 
   build:
     needs: resolve-version
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     strategy:
       fail-fast: false
@@ -39,7 +39,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
 
     - name: Initialization environment
       env:
@@ -49,7 +49,6 @@ jobs:
         sudo docker image prune --all --force
         sudo -E apt-get -qq update
         
-        # Ensure dependencies install safely without interactive prompts hanging or erroring out
         if [ -f "./devenv/dependencies.sh" ]; then
           sudo chmod +x ./devenv/dependencies.sh
           sudo DEBIAN_FRONTEND=noninteractive ./devenv/dependencies.sh
@@ -64,8 +63,7 @@ jobs:
 
     - name: Clone OpenWrt source code
       run: |
-        echo "Using OpenWrt ${{ needs.resolve-version.outputs.openwrt_version }}"
-        git clone https://git.openwrt.org/openwrt/openwrt.git openwrt
+        git clone https://openwrt.org openwrt
         git -C openwrt checkout ${{ needs.resolve-version.outputs.openwrt_version }}
 
     - name: Load msm89xx target and packages
@@ -85,7 +83,6 @@ jobs:
       run: |
         DEVICE="${{ matrix.device }}"
         DIFFCONFIG="diffconfig_${DEVICE}"
-        # Direct fallback validation layer
         if [ -f "$DIFFCONFIG" ]; then
           mv "$DIFFCONFIG" openwrt/.config
         elif [ -f "diffconfigs/${DEVICE}/${DEVICE}.config" ]; then
@@ -104,7 +101,6 @@ jobs:
       id: compile
       run: |
         cd openwrt
-        echo -e "$(nproc) thread compile"
         make -j$(nproc) || make -j1 V=s
         echo "status=success" >> $GITHUB_OUTPUT
         echo "FILE_DATE=$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
@@ -113,7 +109,6 @@ jobs:
       id: organize
       if: env.UPLOAD_FIRMWARE == 'true' && !cancelled()
       run: |
-        # Explicit target configuration map routing
         cd openwrt/bin/targets/msm89xx/generic
         rm -rf packages
         echo "FIRMWARE=$PWD" >> $GITHUB_ENV
