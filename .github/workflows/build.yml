@@ -61,8 +61,10 @@ jobs:
     - name: Load msm89xx target and packages
       run: |
         [ -f "apply_patches.sh" ] && chmod +x apply_patches.sh && ./apply_patches.sh openwrt || true
+        [ -d "msm89xx" ] && echo "# CONFIG_CRYPTO_DEV_QCOM_RNG is not set" >> msm89xx/config-6.12 || true
         [ -d "msm89xx" ] && mv msm89xx openwrt/target/linux/msm89xx || true
         [ -d "packages" ] && mv packages openwrt/package/msm8916 || true
+
 
     - name: Update and install feeds
       run: |
