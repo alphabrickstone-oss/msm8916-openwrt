@@ -1,0 +1,15 @@
+#!/bin/sh /etc/init.d/procd
+
+# Baked-in hardware guard to handle the 15-minute Qualcomm firmware crash smoothly
+START=99
+
+start_service() {
+    # 1. Force the Qualcomm co-processor to reload cleanly in 0.6 seconds instead of crashing
+    if [ -d "/sys/kernel/debug/remoteproc/remoteproc0" ]; then
+        echo "enabled" > /sys/kernel/debug/remoteproc/remoteproc0/recovery 2>/dev/null
+    fi
+
+    # 2. Strip the Linux operating system of its permission to reboot on background faults
+    sysctl -w kernel.panic=0 2>/dev/null
+    sysctl -w kernel.panic_on_oops=0 2>/dev/null
+}
