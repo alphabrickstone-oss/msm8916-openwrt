@@ -90,15 +90,15 @@ jobs:
         make defconfig
         make download -j8
         find dl -size -1024c -exec rm -f {} \; || true
-
     - name: Compile the firmware
       id: compile
       run: |
         cd openwrt
-        yes "" | make target/linux/prepare
+        yes "" | make kernel_oldconfig
         make -j$(nproc) || make -j1 V=s
         echo "status=success" >> $GITHUB_OUTPUT
         echo "FILE_DATE=$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
+
 
     - name: Organize files
       id: organize
