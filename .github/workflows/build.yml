@@ -39,7 +39,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
 
     - name: Initialization environment
       env:
@@ -64,8 +64,8 @@ jobs:
 
     - name: Clone OpenWrt source code
       run: |
-        git clone https://openwrt.org openwrt
-        git -C openwrt checkout ${{ needs.resolve-version.outputs.openwrt_version }}
+        git clone --depth 1 --branch ${{ needs.resolve-version.outputs.openwrt_version }} https://github.com openwrt || \
+        git clone --depth 1 --branch openwrt-25.12 https://github.com openwrt
 
     - name: Load msm89xx target and packages
       run: |
@@ -116,7 +116,7 @@ jobs:
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: Upload firmware
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       if: steps.organize.outputs.status == 'success' && !cancelled()
       with:
         name: openwrt_firmware_${{ matrix.device }}
