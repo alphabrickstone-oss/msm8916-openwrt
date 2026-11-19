@@ -1,0 +1,55 @@
+cat << 'EOF' > /usr/bin/read-sms
+#!/bin/sh
+
+MODEM_INDEX=$(mmcli -L | grep -oE "Modem/[0-9]+" | head -n 1 | cut -d/ -f2)
+
+if [ -z "$MODEM_INDEX" ]; then
+    echo "=========================================="
+    echo "Error: No modem detected by ModemManager."
+    echo "=========================================="
+    exit 1
+fi
+
+SMS_PATHS=$(mmcli -m "$MODEM_INDEX" --messaging-list-sms | grep -o "SMS/[0-9]*")
+
+echo "=========================================="
+echo "          INCOMING SMS INBOX              "
+echo "=========================================="
+
+if [ -z "$SMS_PATHS" ]; then
+    echo "Inbox is empty. No SMS messages found."
+    echo "=========================================="
+    exit 0
+fi
+
+for path in $SMS_PATHS; do
+    id=$(echo "$path" | cut -d/ -f2)
+    echo "------------------------------------------"
+    echo "SMS ID: $id"
+    
+    FROM_NUM=$(mmcli -s "$id" | grep "number:" | sed 's/.*number:[[:space:]]*//')
+    SMS_DATE=$(mmcli -s "$id" | grep "time:" | sed 's/.*time:[[:space:]]*//')
+    
+    # POLISHED FIX: Stop pulling text when hitting the 'Properties' metadata separator line
+    RAW_TEXT=$(mmcli -s "$id" | sed -n '/[[:space:]]*text:[[:space:]]*/,/-----------------------/p' | sed '/-----------------------/d' | sed 's/.*text:[[:space:]]*//')
+    
+    SMS_TEXT=""
+    echo "$RAW_TEXT" | while read -r line; do
+        if [ -n "$line" ]; then
+            SMS_TEXT="$SMS_TEXT $line"
+        fi
+        echo "$SMS_TEXT" > /tmp/sms_clean_txt
+    done
+    
+    CLEAN_TEXT=$(cat /tmp/sms_clean_txt 2>/dev/null | sed 's/[[:space:]]*|[[:space:]]*/ /g')
+    rm -f /tmp/sms_clean_txt
+    
+    echo "From: $FROM_NUM"
+    echo "Date: $SMS_DATE"
+    echo "Text: $CLEAN_TEXT"
+done
+
+echo "=========================================="
+EOF
+
+chmod +x /usr/bin/read-sms
