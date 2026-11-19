@@ -84,3 +84,9 @@ endef
 EOF
 
 echo "mac80211 patches applied successfully"
+
+# --- BAKE-IN PARAMETERS: Grant execution access to our custom self-healing boot script ---
+if [ -f "msm89xx/base-files/etc/init.d/99-modem-selfheal" ]; then
+    echo "Locking execution attributes for 99-modem-selfheal..."
+    chmod +x msm89xx/base-files/etc/init.d/99-modem-selfheal 2>/dev/null
+fi
