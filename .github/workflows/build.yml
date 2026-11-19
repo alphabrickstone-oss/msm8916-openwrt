@@ -18,18 +18,7 @@ env:
   TZ: Europe/Madrid
 
 jobs:
-  resolve-version:
-    runs-on: ubuntu-22.04
-    outputs:
-      openwrt_version: ${{ steps.resolve.outputs.version }}
-    steps:
-    - name: Resolve stable OpenWrt tag
-      id: resolve
-      run: |
-        echo "version=v25.12.6" >> $GITHUB_OUTPUT
-
   build:
-    needs: resolve-version
     runs-on: ubuntu-22.04
 
     strategy:
@@ -64,8 +53,7 @@ jobs:
 
     - name: Clone OpenWrt source code
       run: |
-        git clone --depth 1 --branch ${{ needs.resolve-version.outputs.openwrt_version }} https://github.com openwrt || \
-        git clone --depth 1 --branch openwrt-25.12 https://github.com openwrt
+        git clone --depth 1 --branch main https://github.com openwrt
 
     - name: Load msm89xx target and packages
       run: |
