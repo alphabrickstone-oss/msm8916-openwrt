@@ -1,0 +1,38 @@
+cat << 'EOF' > /usr/bin/send-sms
+#!/bin/sh
+
+if [ -z "$1" ] || [ -z "$2" ]; then
+    echo "Usage syntax: send-sms 0241234567 \"Message text string\""
+    exit 1
+fi
+
+TARGET_PHONE="$1"
+shift
+MESSAGE_BODY="$@"
+
+MODEM_INDEX=$(mmcli -L | grep -oE "Modem/[0-9]+" | head -n 1 | cut -d/ -f2)
+
+if [ -z "$MODEM_INDEX" ]; then
+    echo "Error: No modem detected by ModemManager."
+    exit 1
+fi
+
+# Create the SMS object and grab the path cleanly on a single line
+SMS_PATH=$(mmcli -m "$MODEM_INDEX" --messaging-create-sms="number='$TARGET_PHONE',text='$MESSAGE_BODY'" | grep -o "SMS/[0-9]*")
+
+if [ -z "$SMS_PATH" ]; then
+    echo "Failure: Could not create SMS object."
+    exit 1
+fi
+
+SMS_ID=$(echo "$SMS_PATH" | cut -d/ -f2)
+
+# Attempt transmission
+if mmcli -s "$SMS_ID" --send; then
+    echo "Success: Message transmitted out completely!"
+    # Clean up the sent message from outbox storage automatically
+    mmcli -m "$MODEM_INDEX" --messaging-delete-sms="$SMS_ID" >/dev/null 2>&1
+else
+    echo "Failure: Check carrier network or balance."
+fi
+EOF
