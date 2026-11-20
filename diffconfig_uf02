@@ -37,6 +37,7 @@ CONFIG_MODEMMANAGER_WITH_QMI=y
 CONFIG_MODEMMANAGER_WITH_QRTR=y
 CONFIG_PACKAGE_modemmanager=y
 CONFIG_PACKAGE_qmi-utils=y
+CONFIG_PACKAGE_qcom-time-daemon=y
 
 # --- CRITICAL: ABSOLUTE WIPE OF BUGGY TRACKERS ---
 # CONFIG_PACKAGE_msm89xx-scripts is not set
@@ -48,11 +49,15 @@ CONFIG_PACKAGE_qmi-utils=y
 
 # --- Stable Built-In Infrastructure Features ---
 CONFIG_PACKAGE_luci=y
+CONFIG_PACKAGE_luci-theme-feelgood=y
 CONFIG_PACKAGE_luci-app-firewall=y
 CONFIG_PACKAGE_luci-proto-modemmanager=y
+CONFIG_PACKAGE_uclient-fetch=y
 CONFIG_PACKAGE_kmod-qrtr=y
 CONFIG_PACKAGE_kmod-wcn36xx=y
 CONFIG_PACKAGE_wcn36xx-firmware=y
+CONFIG_PACKAGE_simple-adblock=y
+CONFIG_PACKAGE_luci-app-simple-adblock=y
 
 # --- Failsafe Mode Integration Profile ---
 CONFIG_IMAGEOPT=y
@@ -77,7 +82,6 @@ CONFIG_PACKAGE_kmod-usb-serial-wwan=m
 CONFIG_PACKAGE_kmod-usb-serial-qualcomm=m
 CONFIG_PACKAGE_kmod-usb-storage=m
 CONFIG_PACKAGE_kmod-usb-storage-uas=m
-# --- Networking, Filesystems, and Protocols (=m modules for package feed only) ---
 CONFIG_PACKAGE_kmod-ipsec=m
 CONFIG_PACKAGE_kmod-ipsec4=m
 CONFIG_PACKAGE_kmod-ipsec6=m
@@ -220,11 +224,7 @@ CONFIG_PACKAGE_kmod-netatop=m
 CONFIG_PACKAGE_kmod-ovpn-backports=m
 CONFIG_PACKAGE_kmod-pppoa=m
 CONFIG_PACKAGE_kmod-solos-pci=m
-CONFIG_PACKAGE_kmod-sound-core=m
-CONFIG_PACKAGE_kmod-sound-msm8916-voice=m
-CONFIG_PACKAGE_kmod-usb-audio=m
 CONFIG_PACKAGE_kmod-ipt-nfqueue=m
-CONFIG_PACKAGE_qcom-time-daemon=y
 # CONFIG_FEED_telephony is not set
 # CONFIG_FEED_video is not set
 
@@ -234,7 +234,6 @@ CONFIG_VERSION_FILENAMES=n
 CONFIG_VERSION_DIST="msm8916-openwrt-clean"
 CONFIG_VERSION_NUMBER="25.12.6-clean"
 CONFIG_VERSION_CODE=""
-# We set these to blank text string loops to safely stop automatic rogue hotfix downloads
 CONFIG_VERSION_REPO=""
 CONFIG_VERSION_HOME_URL=""
 CONFIG_VERSION_BUG_URL=""
