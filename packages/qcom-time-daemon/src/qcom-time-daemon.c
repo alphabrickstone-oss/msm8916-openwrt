@@ -53,23 +53,28 @@ static void handle_signal(int sig)
 static int send_qmi_genoff_get(int sock, uint32_t node, uint32_t port, uint32_t base)
 {
 	struct time_genoff_get_req req = { .base = base };
+	struct qrtr_packet packet;
 	uint8_t *buf;
-	int len, ret;
+	ssize_t len;
+	int ret;
 
 	buf = calloc(1, QMI_BUF_SIZE);
 	if (!buf)
 		return -ENOMEM;
 
-	len = qmi_encode_message(buf, QMI_BUF_SIZE,
-				 QMI_REQUEST, next_txn_id++,
+	packet.data = buf;
+	packet.data_len = QMI_BUF_SIZE;
+	len = qmi_encode_message(&packet, QMI_REQUEST,
 				 QMI_TIME_GENOFF_GET_REQ,
+				 next_txn_id++,
 				 &req, time_genoff_get_req_ei);
 	if (len < 0) {
 		free(buf);
 		return len;
 	}
 
-	ret = qrtr_sendto(sock, node, port, buf, (size_t)len);
+	ret = qrtr_sendto(sock, node, port, packet.data,
+			  (unsigned int)packet.data_len);
 	free(buf);
 	return ret;
 }

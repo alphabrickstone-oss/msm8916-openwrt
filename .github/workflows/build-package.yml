@@ -29,6 +29,7 @@ jobs:
         fi
         echo "Resolved OpenWrt version: $VERSION"
         echo "OPENWRT_VERSION=$VERSION" >> $GITHUB_ENV
+        echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
     - name: Initialization environment
       env:
@@ -44,9 +45,9 @@ jobs:
 
     - name: Clone OpenWrt source code
       run: |
-        echo "Using OpenWrt ${{ env.OPENWRT_VERSION }}"
+        echo "Using OpenWrt $OPENWRT_VERSION"
         git clone https://git.openwrt.org/openwrt/openwrt.git openwrt
-        git -C openwrt checkout ${{ env.OPENWRT_VERSION }}
+        git -C openwrt checkout "$OPENWRT_VERSION"
 
     - name: Load msm89xx target and packages
       run: |
@@ -70,7 +71,7 @@ jobs:
         echo "CONFIG_PACKAGE_luci-app-tailscale=y" >> .config
         make defconfig
         make download -j8
-        find dl -size -1024c -exec rm -f {} \; || true
+        find dl -size -1024c -exec rm -f {} \;
 
     - name: Build toolchain and dependencies
       run: |
@@ -80,12 +81,13 @@ jobs:
         make target/linux/compile -j$(nproc) V=s
 
     - name: Build packages
+      id: build-packages
       run: |
         cd openwrt
         for pkg in $PACKAGES; do
           make package/${pkg}/compile -j$(nproc) V=s
         done
-        echo "FILE_DATE=$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
+        echo "file_date=$(date +"%Y%m%d%H%M")" >> "$GITHUB_OUTPUT"
 
     - name: Collect artifacts
       run: |
@@ -97,5 +99,5 @@ jobs:
     - name: Upload packages
       uses: actions/upload-artifact@v4
       with:
-        name: packages_${{ env.OPENWRT_VERSION }}_${{ env.FILE_DATE }}
+        name: packages_${{ steps.resolve.outputs.version }}_${{ steps.build-packages.outputs.file_date }}
         path: artifacts/

@@ -42,10 +42,7 @@ jobs:
           build-essential clang flex bison g++ gawk gcc-multilib g++-multilib \
           gettext git libncurses5-dev libssl-dev python3-setuptools rsync unzip zlib1g-dev file wget subversion patch
           
-        if [ -f "./devenv/dependencies.sh" ]; then
-          sudo chmod +x ./devenv/dependencies.sh
-          sudo DEBIAN_FRONTEND=noninteractive ./devenv/dependencies.sh || true
-        fi
+        sudo DEBIAN_FRONTEND=noninteractive ./devenv/dependencies.sh
         
         sudo apt-get -qq autoremove --purge -y
         sudo apt-get -qq clean
@@ -60,10 +57,9 @@ jobs:
 
     - name: Load msm89xx target and packages
       run: |
-        [ -f "apply_patches.sh" ] && chmod +x apply_patches.sh && ./apply_patches.sh openwrt || true
-        [ -d "msm89xx" ] && echo "# CONFIG_CRYPTO_DEV_QCOM_RNG is not set" >> msm89xx/config-6.12 || true
-        [ -d "msm89xx" ] && mv msm89xx openwrt/target/linux/msm89xx || true
-        [ -d "packages" ] && mv packages openwrt/package/msm8916 || true
+        ./apply_patches.sh openwrt
+        mv msm89xx openwrt/target/linux/msm89xx
+        mv packages openwrt/package/msm8916
 
 
     - name: Update and install feeds
@@ -81,6 +77,9 @@ jobs:
           mv "$DIFFCONFIG" openwrt/.config
         elif [ -f "diffconfigs/${DEVICE}/${DEVICE}.config" ]; then
           cp "diffconfigs/${DEVICE}/${DEVICE}.config" openwrt/.config
+        else
+          echo "Error: no diffconfig found for ${DEVICE}"
+          exit 1
         fi
         sed -i '/CONFIG_PACKAGE_openvswitch/d' openwrt/.config
         sed -i '/CONFIG_PACKAGE_kmod-openvswitch/d' openwrt/.config
@@ -90,8 +89,17 @@ jobs:
       run: |
         cd openwrt
         make defconfig
+        case "${{ matrix.device }}" in
+          uf02) profile=generic-uf02 ;;
+          uz801) profile=yiming-uz801v3 ;;
+          *) echo "Error: unsupported device '${{ matrix.device }}'"; exit 1 ;;
+        esac
+        grep -qx "CONFIG_TARGET_msm89xx_msm8916_DEVICE_${profile}=y" .config || {
+          echo "Error: expected target profile ${profile} was not selected"
+          exit 1
+        }
         make download -j8
-        find dl -size -1024c -exec rm -f {} \; || true
+        find dl -size -1024c -exec rm -f {} \;
     - name: Compile the firmware
       id: compile
       run: |
@@ -99,7 +107,6 @@ jobs:
         yes "" |make kernel_oldconfig
         make -j$(nproc) || make -j1 V=s
         echo "status=success" >> $GITHUB_OUTPUT
-        echo "FILE_DATE=$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
 
 
     - name: Organize files
@@ -113,7 +120,7 @@ jobs:
         fi
         cd "$TARGET_DIR"
         rm -rf packages
-        echo "FIRMWARE=$PWD" >> $GITHUB_ENV
+        echo "firmware=$PWD" >> "$GITHUB_OUTPUT"
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: Upload firmware
@@ -121,6 +128,6 @@ jobs:
       if: steps.organize.outputs.status == 'success' && !cancelled()
       with:
         name: openwrt_firmware_${{ matrix.device }}
-        path: ${{ env.FIRMWARE }}/
+        path: ${{ steps.organize.outputs.firmware }}/
 
 
