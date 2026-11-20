@@ -28,8 +28,8 @@
 
 #define DEFAULT_POLL_INTERVAL_SEC	60
 #define HANDSHAKE_RETRY_INTERVAL_SEC	5
-#define QMI_TIME_SERVICE_ID		0x24
-#define QMI_TIME_SERVICE_VERSION	1
+#define QMI_BUF_SIZE			256
+#define RX_BUF_SIZE			4096
 
 static volatile sig_atomic_t running = 1;
 static bool verbose = false;
@@ -56,24 +56,25 @@ static void handle_signal(int sig)
 static int send_qmi_genoff_get(int fd, uint32_t node, uint32_t port, uint32_t base)
 {
 	struct time_genoff_get_req req = { .base = base };
-	struct qrtr_packet pkt = { 0 };
-	uint8_t buf[256];
-	int len;
+	uint8_t *buf;
+	int len, ret;
 
-	len = qmi_encode_message(buf, sizeof(buf),
+	buf = calloc(1, QMI_BUF_SIZE);
+	if (!buf)
+		return -ENOMEM;
+
+	len = qmi_encode_message(buf, QMI_BUF_SIZE,
 				 QMI_REQUEST, next_txn_id++,
 				 QMI_TIME_GENOFF_GET_REQ,
 				 &req, time_genoff_get_req_ei);
-	if (len < 0)
+	if (len < 0) {
+		free(buf);
 		return len;
+	}
 
-	pkt.type = QRTR_TYPE_DATA;
-	pkt.node = node;
-	pkt.port = port;
-	pkt.data = buf;
-	pkt.data_len = (size_t)len;
-
-	return qrtr_sendto(fd, node, port, buf, (size_t)len);
+	ret = qrtr_sendto(fd, node, port, buf, (size_t)len);
+	free(buf);
+	return ret;
 }
 
 int main(int argc, char **argv)
@@ -82,6 +83,7 @@ int main(int argc, char **argv)
 	struct pollfd pfd;
 	uint64_t last_lookup_attempt = 0;
 	uint64_t last_keepalive = 0;
+	char *rx_buf;
 
 	openlog("qcom-time-daemon", LOG_PID | LOG_PERROR, LOG_DAEMON);
 
@@ -100,12 +102,19 @@ int main(int argc, char **argv)
 	if (poll_interval <= 0)
 		poll_interval = DEFAULT_POLL_INTERVAL_SEC;
 
+	rx_buf = malloc(RX_BUF_SIZE);
+	if (!rx_buf) {
+		syslog(LOG_ERR, "[QMI-TIME] Out of memory");
+		return EXIT_FAILURE;
+	}
+
 	signal(SIGINT, handle_signal);
 	signal(SIGTERM, handle_signal);
 
 	fd = qrtr_open(0);
 	if (fd < 0) {
 		syslog(LOG_ERR, "[QMI-TIME] Failed to open QRTR socket: %s", strerror(errno));
+		free(rx_buf);
 		return EXIT_FAILURE;
 	}
 
@@ -135,10 +144,9 @@ int main(int argc, char **argv)
 
 		int ret = poll(&pfd, 1, 1000);
 		if (ret > 0 && (pfd.revents & POLLIN)) {
-			char rx_buf[4096];
 			struct sockaddr_qrtr sq;
 			socklen_t sl = sizeof(sq);
-			ssize_t rx_len = recvfrom(fd, rx_buf, sizeof(rx_buf), 0,
+			ssize_t rx_len = recvfrom(fd, rx_buf, RX_BUF_SIZE, 0,
 						  (struct sockaddr *)&sq, &sl);
 			if (rx_len > 0) {
 				struct qrtr_packet pkt;
@@ -149,8 +157,8 @@ int main(int argc, char **argv)
 						modem_port = pkt.port;
 						modem_connected = true;
 						last_keepalive = 0;
-						syslog(LOG_INFO, "[QMI-TIME] Discovered Time service on node %u, port %u",
-						       modem_node, modem_port);
+						syslog(LOG_INFO, "[QMI-TIME] Discovered Time service (0x%x) on node %u, port %u",
+						       QMI_TIME_SERVICE_ID, modem_node, modem_port);
 					} else if (pkt.type == QRTR_TYPE_DEL_SERVER &&
 						   pkt.node == modem_node && pkt.port == modem_port) {
 						modem_connected = false;
@@ -162,6 +170,7 @@ int main(int argc, char **argv)
 	}
 
 	close(fd);
+	free(rx_buf);
 	syslog(LOG_INFO, "[QMI-TIME] Daemon stopped smoothly");
 	return EXIT_SUCCESS;
 }
