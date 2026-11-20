@@ -1,7 +1,7 @@
 /*
  * Qualcomm QMI Time Synchronization & Keepalive Daemon
  *
- * Implements Android-compatible transactional QMI Time state machine
+ * Implements QMI Time service discovery & periodic keepalive
  * on Qualcomm MSM8916 / Snapdragon 410 using OpenWrt libqrtr.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -18,9 +18,6 @@
 #include <signal.h>
 #include <syslog.h>
 #include <time.h>
-#include <fcntl.h>
-#include <sys/socket.h>
-#include <sys/stat.h>
 #include <poll.h>
 
 #include <libqrtr.h>
@@ -53,7 +50,7 @@ static void handle_signal(int sig)
 	running = 0;
 }
 
-static int send_qmi_genoff_get(int fd, uint32_t node, uint32_t port, uint32_t base)
+static int send_qmi_genoff_get(int sock, uint32_t node, uint32_t port, uint32_t base)
 {
 	struct time_genoff_get_req req = { .base = base };
 	uint8_t *buf;
@@ -72,14 +69,14 @@ static int send_qmi_genoff_get(int fd, uint32_t node, uint32_t port, uint32_t ba
 		return len;
 	}
 
-	ret = qrtr_sendto(fd, node, port, buf, (size_t)len);
+	ret = qrtr_sendto(sock, node, port, buf, (size_t)len);
 	free(buf);
 	return ret;
 }
 
 int main(int argc, char **argv)
 {
-	int fd, opt;
+	int sock, opt;
 	struct pollfd pfd;
 	uint64_t last_lookup_attempt = 0;
 	uint64_t last_keepalive = 0;
@@ -94,7 +91,7 @@ int main(int argc, char **argv)
 		case 'i': poll_interval = atoi(optarg); break;
 		case 'r': case 'f': break;
 		default:
-			fprintf(stderr, "Usage: %s [-v] [-p] [-i interval] [-r refresh] [-f state_file] [-d]\n", argv[0]);
+			fprintf(stderr, "Usage: %s [-v] [-p] [-i interval] [-r refresh] [-f state_file] [-d]\n", *argv);
 			return EXIT_FAILURE;
 		}
 	}
@@ -111,17 +108,17 @@ int main(int argc, char **argv)
 	signal(SIGINT, handle_signal);
 	signal(SIGTERM, handle_signal);
 
-	fd = qrtr_open(0);
-	if (fd < 0) {
+	sock = qrtr_open(0);
+	if (sock < 0) {
 		syslog(LOG_ERR, "[QMI-TIME] Failed to open QRTR socket: %s", strerror(errno));
 		free(rx_buf);
 		return EXIT_FAILURE;
 	}
 
-	qrtr_new_lookup(fd, QMI_TIME_SERVICE_ID, QMI_TIME_SERVICE_VERSION, 0);
+	qrtr_new_lookup(sock, QMI_TIME_SERVICE_ID, QMI_TIME_SERVICE_VERSION, 0);
 	syslog(LOG_INFO, "[QMI-TIME] Qualcomm Time Synchronization & Keepalive Daemon initialized");
 
-	pfd.fd = fd;
+	pfd.fd = sock;
 	pfd.events = POLLIN;
 
 	while (running) {
@@ -129,12 +126,12 @@ int main(int argc, char **argv)
 
 		if (!modem_connected && (now - last_lookup_attempt >= HANDSHAKE_RETRY_INTERVAL_SEC)) {
 			last_lookup_attempt = now;
-			qrtr_new_lookup(fd, QMI_TIME_SERVICE_ID, QMI_TIME_SERVICE_VERSION, 0);
+			qrtr_new_lookup(sock, QMI_TIME_SERVICE_ID, QMI_TIME_SERVICE_VERSION, 0);
 		}
 
 		if (modem_connected && (now - last_keepalive >= (uint64_t)poll_interval)) {
 			last_keepalive = now;
-			if (send_qmi_genoff_get(fd, modem_node, modem_port, ATS_TOD) < 0) {
+			if (send_qmi_genoff_get(sock, modem_node, modem_port, ATS_TOD) < 0) {
 				syslog(LOG_WARNING, "[QMI-TIME] Keepalive send failed: %s", strerror(errno));
 				modem_connected = false;
 			} else if (verbose) {
@@ -144,12 +141,15 @@ int main(int argc, char **argv)
 
 		int ret = poll(&pfd, 1, 1000);
 		if (ret > 0 && (pfd.revents & POLLIN)) {
-			struct sockaddr_qrtr sq;
-			socklen_t sl = sizeof(sq);
-			ssize_t rx_len = recvfrom(fd, rx_buf, RX_BUF_SIZE, 0,
-						  (struct sockaddr *)&sq, &sl);
+			uint32_t from_node = 0, from_port = 0;
+			int rx_len = qrtr_recvfrom(sock, rx_buf, RX_BUF_SIZE, &from_node, &from_port);
 			if (rx_len > 0) {
 				struct qrtr_packet pkt;
+				struct sockaddr_qrtr sq = {
+					.sq_family = AF_QIPCRTR,
+					.sq_node = from_node,
+					.sq_port = from_port,
+				};
 				if (qrtr_decode(&pkt, rx_buf, (size_t)rx_len, &sq) == 0) {
 					if (pkt.type == QRTR_TYPE_NEW_SERVER &&
 					    pkt.service == QMI_TIME_SERVICE_ID) {
@@ -169,7 +169,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-	close(fd);
+	qrtr_close(sock);
 	free(rx_buf);
 	syslog(LOG_INFO, "[QMI-TIME] Daemon stopped smoothly");
 	return EXIT_SUCCESS;
