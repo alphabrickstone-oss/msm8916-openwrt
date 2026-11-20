@@ -82,6 +82,8 @@ jobs:
         elif [ -f "diffconfigs/${DEVICE}/${DEVICE}.config" ]; then
           cp "diffconfigs/${DEVICE}/${DEVICE}.config" openwrt/.config
         fi
+        sed -i '/CONFIG_PACKAGE_openvswitch/d' openwrt/.config
+        sed -i '/CONFIG_PACKAGE_kmod-openvswitch/d' openwrt/.config
 
     - name: Download package
       id: package
