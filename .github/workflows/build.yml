@@ -94,7 +94,7 @@ jobs:
       id: compile
       run: |
         cd openwrt
-        make kernel_oldconfig
+        make kernel_olddefconfig
         make -j$(nproc) || make -j1 V=s
         echo "status=success" >> $GITHUB_OUTPUT
         echo "FILE_DATE=$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
@@ -119,9 +119,6 @@ jobs:
       if: steps.organize.outputs.status == 'success' && !cancelled()
       with:
         name: openwrt_firmware_${{ matrix.device }}
-        path: |
-          ${{ env.FIRMWARE }}/*-gpt_both0.bin
-          ${{ env.FIRMWARE }}/*-boot.img
-          ${{ env.FIRMWARE }}/*-system.img
-          ${{ env.FIRMWARE }}/*.manifest
+        path: ${{ env.FIRMWARE }}/
+
 
