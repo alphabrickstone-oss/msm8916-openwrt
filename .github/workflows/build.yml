@@ -54,12 +54,14 @@ jobs:
         git clone https://git.openwrt.org/openwrt/openwrt.git
         git -C openwrt checkout v25.12.6
 
-
     - name: Load msm89xx target and packages
       run: |
         ./apply_patches.sh openwrt
+        echo "# CONFIG_CRYPTO_DEV_QCOM_RNG is not set" >> msm89xx/config-6.12
+        sed -i 's/^CONFIG_QCOM_QMI_HELPERS=y/CONFIG_QCOM_QMI_HELPERS=m/' msm89xx/config-6.12
         mv msm89xx openwrt/target/linux/msm89xx
         mv packages openwrt/package/msm8916
+
 
 
     - name: Update and install feeds
