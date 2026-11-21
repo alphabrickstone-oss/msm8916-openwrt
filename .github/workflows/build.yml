@@ -67,7 +67,7 @@ jobs:
         rm -rf tmp
         ./scripts/feeds update -a
         ./scripts/feeds install -a
-        python3 -c '
+        python3 - <<'PY'
         p = "package/kernel/mac80211/Makefile"
         s = open(p).read()
         block = s.split("define KernelPackage/qcom-qmi-helpers")[1].split("endef")[0]
@@ -76,9 +76,7 @@ jobs:
         else:
             new_block = "\n  DEPENDS:=+kmod-mac80211" + block
         open(p, "w").write(s.replace(block, new_block, 1))
-        '
-
-
+        PY
 
     - name: Load diffconfig
       run: |
