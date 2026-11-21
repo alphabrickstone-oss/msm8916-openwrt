@@ -10,8 +10,7 @@ platform_check_image() {
     local boardname
     
     read boardname </tmp/sysinfo/board_name
-    boardname=${boardname//-/}
-    boardname=${boardname//,/-}
+    boardname=$(printf '%s' "$boardname" | tr -d '-' | tr ',' '-')
 
     # Must be a tar archive
     local control_len=$( (tar xf $fw_image sysupgrade-$boardname/CONTROL -O | wc -c) 2> /dev/null)

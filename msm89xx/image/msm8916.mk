@@ -30,6 +30,7 @@ endef
 
 define Device/yiming-uz801v3
   $(Device/msm8916)
+  DEVICE_DTS := msm8916-yiming-uz801v3
   DEVICE_VENDOR := YiMing
   DEVICE_MODEL := uz801v3
   SUPPORTED_DEVICES := yiming,uz801-v3
@@ -42,6 +43,7 @@ TARGET_DEVICES += yiming-uz801v3
 
 define Device/generic-uf02
   $(Device/msm8916)
+  DEVICE_DTS := msm8916-generic-uf02
   DEVICE_VENDOR := Generic
   DEVICE_MODEL := UF02 (250605 V0S)
   SUPPORTED_DEVICES := uf02,250605v0s
