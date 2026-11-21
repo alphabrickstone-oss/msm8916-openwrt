@@ -60,13 +60,14 @@ jobs:
         echo "# CONFIG_CRYPTO_DEV_QCOM_RNG is not set" >> msm89xx/config-6.12
         mv msm89xx openwrt/target/linux/msm89xx
         mv packages openwrt/package/msm8916
+       
     - name: Update and install feeds
       run: |
         cd openwrt
         rm -rf tmp
         ./scripts/feeds update -a
         ./scripts/feeds install -a
-        find package/kernel/mac80211 -type f -exec sed -i '/qmi_helpers\.ko/d' {} +
+        find package/kernel/mac80211 -type f -exec sed -i 's|[^[:space:]]*qmi_helpers\.ko||g' {} +
 
 
     - name: Load diffconfig
@@ -84,6 +85,9 @@ jobs:
         sed -i '/CONFIG_PACKAGE_openvswitch/d' openwrt/.config
         sed -i '/CONFIG_PACKAGE_kmod-openvswitch/d' openwrt/.config
         echo "CONFIG_PACKAGE_kmod-qcom-qmi-helpers=y" >> openwrt/.config
+        echo "CONFIG_PACKAGE_luci-app-statistics=y" >> openwrt/.config
+        echo "CONFIG_PACKAGE_collectd-mod-sensors=y" >> openwrt/.config
+        echo "CONFIG_PACKAGE_collectd-mod-thermal=y" >> openwrt/.config
 
     - name: Download package
       id: package
