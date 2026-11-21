@@ -60,14 +60,14 @@ jobs:
         echo "# CONFIG_CRYPTO_DEV_QCOM_RNG is not set" >> msm89xx/config-6.12
         mv msm89xx openwrt/target/linux/msm89xx
         mv packages openwrt/package/msm8916
-
     - name: Update and install feeds
       run: |
         cd openwrt
         rm -rf tmp
         ./scripts/feeds update -a
         ./scripts/feeds install -a
-        sed -i 's|$(LINUX_DIR)/drivers/soc/qcom/qmi_helpers.ko||g; s|$(PKG_BUILD_DIR)/drivers/soc/qcom/qmi_helpers.ko||g' package/kernel/mac80211/Makefile
+        find package/kernel/mac80211 -type f -exec sed -i '/qmi_helpers\.ko/d' {} +
+
 
     - name: Load diffconfig
       run: |
