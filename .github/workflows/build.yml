@@ -67,7 +67,17 @@ jobs:
         rm -rf tmp
         ./scripts/feeds update -a
         ./scripts/feeds install -a
-        find package/kernel/mac80211 -type f -exec sed -i 's|[^[:space:]]*qmi_helpers\.ko||g' {} +
+        python3 -c '
+        p = "package/kernel/mac80211/Makefile"
+        s = open(p).read()
+        block = s.split("define KernelPackage/qcom-qmi-helpers")[1].split("endef")[0]
+        if "DEPENDS:=" in block:
+            new_block = block.replace("DEPENDS:=", "DEPENDS:=+kmod-mac80211 ")
+        else:
+            new_block = "\n  DEPENDS:=+kmod-mac80211" + block
+        open(p, "w").write(s.replace(block, new_block, 1))
+        '
+
 
 
     - name: Load diffconfig
