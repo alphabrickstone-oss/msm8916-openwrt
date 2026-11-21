@@ -84,6 +84,7 @@ jobs:
         fi
         sed -i '/CONFIG_PACKAGE_openvswitch/d' openwrt/.config
         sed -i '/CONFIG_PACKAGE_kmod-openvswitch/d' openwrt/.config
+        echo "CONFIG_PACKAGE_kmod-qcom-qmi-helpers=y" >> openwrt/.config
 
     - name: Download package
       id: package
