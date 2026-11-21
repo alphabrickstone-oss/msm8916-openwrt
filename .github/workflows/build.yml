@@ -63,7 +63,6 @@ jobs:
         mv packages openwrt/package/msm8916
 
 
-
     - name: Update and install feeds
       run: |
         cd openwrt
